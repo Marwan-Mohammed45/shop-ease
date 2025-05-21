@@ -15,7 +15,7 @@ import Navbar from "./componets/Navbar.jsx";
 import { Productsdata } from "./api/api.js";
 import Register from "./pages/Signup.jsx";
 import Wishlist from "./pages/wishlist.jsx";
-import ProductDetails from "./pages/ProductDetails.jsx";
+import ProductDetails from "./pages/productdetails.jsx";
 import NotFound from "./pages/NotFound.jsx";
 
 // Layout with Navbar and Footer
