@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaStar, FaRegStar, FaStarHalfAlt, FaShoppingCart, FaHeart, FaRegHeart, FaChevronLeft, FaChevronRight, FaTruck, FaShieldAlt, FaReply, FaExclamationTriangle, FaBoxOpen } from 'react-icons/fa';
+import { FaShoppingCart, FaHeart, FaRegHeart, FaChevronLeft, FaChevronRight, FaTruck, FaShieldAlt, FaReply, FaExclamationTriangle } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { Productsdata } from '../api/api';
 import { useDispatch, useSelector } from 'react-redux';
@@ -13,18 +13,18 @@ const ProductDetails = () => {
   const dispatch = useDispatch();
   
   const wishlist = useSelector(state => state.ecommerce?.wishlist || {});
-  const cartItems = useSelector(state => state.ecommerce?.cart || []);
   
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentImage, setCurrentImage] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const [stock, setStock] = useState(0);
+  const [state, setState] = useState({
+    product: null,
+    loading: true,
+    error: null,
+    currentImage: 0,
+    quantity: 1
+  });
 
   const fetchProduct = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setState(prev => ({...prev, loading: true, error: null}));
+    
     try {
       const products = await Productsdata();
       const foundProduct = products.find(p => p.id.toString() === id);
@@ -32,105 +32,78 @@ const ProductDetails = () => {
       if (foundProduct) {
         const productImages = Array.isArray(foundProduct.images) && foundProduct.images.length > 0
           ? foundProduct.images
-          : [
-              foundProduct.image,
-              foundProduct.image.replace(/\.(jpg|jpeg|png)/, '_1.$1'),
-              foundProduct.image.replace(/\.(jpg|jpeg|png)/, '_2.$1'),
-              foundProduct.image.replace(/\.(jpg|jpeg|png)/, '_3.$1')
-            ].filter(Boolean);
-
-        const initialStock = Math.floor(Math.random() * 50) + 10;
-        const inCart = cartItems.find(item => item.id === foundProduct.id)?.quantity || 0;
-        const availableStock = Math.max(0, initialStock - inCart);
-
-        setProduct({
-          ...foundProduct,
-          images: productImages,
-          discountPercentage: foundProduct.discountPercentage || 0,
-          rating: foundProduct.rating || { rate: 4.5, count: 124 }
-        });
+          : [foundProduct.image];
         
-        setStock(availableStock);
+        setState(prev => ({
+          ...prev,
+          product: {
+            ...foundProduct,
+            images: productImages,
+            discountPercentage: foundProduct.discountPercentage || 0
+          },
+          loading: false
+        }));
       } else {
-        setError('Product not found');
+        setState(prev => ({...prev, error: 'Product not found', loading: false}));
       }
     } catch (error) {
-      console.error('Error fetching product:', error);
-      setError('Failed to load product details');
+      setState(prev => ({...prev, error: 'Failed to load product details', loading: false}));
       toast.error('Failed to load product details');
-    } finally {
-      setLoading(false);
     }
-  }, [id, cartItems]);
+  }, [id]);
 
   useEffect(() => {
     fetchProduct();
   }, [fetchProduct]);
 
   const handleToggleWishlist = useCallback(() => {
-    if (!product) return;
+    if (!state.product) return;
     dispatch(toggleWishlist({
-      id: product.id,
-      img: product.image,
-      price: product.price,
-      title: product.title,
-      category: product.category
+      id: state.product.id,
+    img: state.product.thumbnail || state.product.image,
+    price: state.product.price,
+    title: state.product.title,
+    category: state.product.category,
+    quantity: state.quantity
     }));
-    toast.success(wishlist[product.id] ? 'Removed from wishlist' : 'Added to wishlist');
-  }, [dispatch, product, wishlist]);
+    toast.success(wishlist[state.product.id] ? 'Removed from wishlist' : 'Added to wishlist');
+  }, [dispatch, state.product, wishlist]);
 
   const handleAddToCart = useCallback(() => {
-    if (!product) return;
-    
-    if (quantity > stock) {
-      toast.error(`Only ${stock} items available in stock`);
-      return;
-    }
+    if (!state.product) return;
     
     dispatch(addToCart({
-      id: product.id,
-      title: product.title,
-      price: product.price,
-      img: product.image,
-      quantity: quantity
+      id: state.product.id,
+    img: state.product.thumbnail || state.product.image,
+    price: state.product.price,
+    title: state.product.title,
+    category: state.product.category,
+    quantity: state.quantity
     }));
     
-    setStock(prev => prev - quantity);
-    setQuantity(1);
-    
-    toast.success(`${quantity} ${product.title} added to cart`);
-  }, [dispatch, product, quantity, stock]);
-
-  const renderStars = useCallback((rating) => {
-    const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
-    
-    for (let i = 0; i < fullStars; i++) {
-      stars.push(<FaStar key={`full-${i}`} className="text-yellow-400" />);
-    }
-    
-    if (hasHalfStar) {
-      stars.push(<FaStarHalfAlt key="half" className="text-yellow-400" />);
-    }
-    
-    const emptyStars = 5 - stars.length;
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(<FaRegStar key={`empty-${i}`} className="text-gray-300" />);
-    }
-    
-    return stars;
-  }, []);
+    setState(prev => ({...prev, quantity: 1}));
+    toast.success(`${state.quantity} ${state.product.title} added to cart`);
+  }, [dispatch, state.product, state.quantity]);
 
   const nextImage = useCallback(() => {
-    setCurrentImage(prev => (prev < product.images.length - 1 ? prev + 1 : 0));
-  }, [product]);
+    setState(prev => ({
+      ...prev,
+      currentImage: (prev.currentImage < prev.product.images.length - 1) 
+        ? prev.currentImage + 1 
+        : 0
+    }));
+  }, []);
 
   const prevImage = useCallback(() => {
-    setCurrentImage(prev => (prev > 0 ? prev - 1 : product.images.length - 1));
-  }, [product]);
+    setState(prev => ({
+      ...prev,
+      currentImage: (prev.currentImage > 0) 
+        ? prev.currentImage - 1 
+        : prev.product.images.length - 1
+    }));
+  }, []);
 
-  if (loading) {
+  if (state.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -138,7 +111,7 @@ const ProductDetails = () => {
     );
   }
 
-  if (error || !product) {
+  if (state.error || !state.product) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
@@ -149,10 +122,10 @@ const ProductDetails = () => {
           <FaExclamationTriangle />
         </div>
         <h2 className="text-2xl font-bold text-gray-800 mb-2">
-          {error ? 'Oops! Something went wrong' : 'Product Not Found'}
+          {state.error ? 'Oops! Something went wrong' : 'Product Not Found'}
         </h2>
         <p className="text-gray-600 mb-6 max-w-md">
-          {error || 'The product you are looking for does not exist.'}
+          {state.error || 'The product you are looking for does not exist.'}
         </p>
         <button
           onClick={() => navigate('/')}
@@ -192,9 +165,9 @@ const ProductDetails = () => {
             <div className="space-y-4">
               <div className="relative h-96 bg-white rounded-lg overflow-hidden border border-gray-200">
                 <motion.img
-                  key={currentImage}
-                  src={product.images[currentImage]}
-                  alt={product.title}
+                  key={state.currentImage}
+                  src={state.product.images[state.currentImage]}
+                  alt={state.product.title}
                   className="w-full h-full object-contain p-4"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -204,7 +177,7 @@ const ProductDetails = () => {
                   }}
                 />
                 
-                {product.images.length > 1 && (
+                {state.product.images.length > 1 && (
                   <>
                     <motion.button
                       whileHover={{ scale: 1.1 }}
@@ -225,14 +198,14 @@ const ProductDetails = () => {
                 )}
               </div>
               
-              {product.images.length > 1 && (
+              {state.product.images.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto py-2">
-                  {product.images.map((img, index) => (
+                  {state.product.images.map((img, index) => (
                     <motion.button
                       key={index}
                       whileHover={{ scale: 1.05 }}
-                      onClick={() => setCurrentImage(index)}
-                      className={`flex-shrink-0 w-16 h-16 rounded border ${currentImage === index ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'} overflow-hidden bg-white`}
+                      onClick={() => setState(prev => ({...prev, currentImage: index}))}
+                      className={`flex-shrink-0 w-16 h-16 rounded border ${state.currentImage === index ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'} overflow-hidden bg-white`}
                     >
                       <img 
                         src={img} 
@@ -256,30 +229,21 @@ const ProductDetails = () => {
                   animate={{ x: 0 }}
                   className="text-2xl font-bold text-gray-900"
                 >
-                  {product.title}
+                  {state.product.title}
                 </motion.h1>
                 
                 <motion.button
                   whileTap={{ scale: 0.9 }}
                   onClick={handleToggleWishlist}
                   className="text-2xl p-2"
-                  aria-label={wishlist[product.id] ? "Remove from wishlist" : "Add to wishlist"}
+                  aria-label={wishlist[state.product.id] ? "Remove from wishlist" : "Add to wishlist"}
                 >
-                  {wishlist[product.id] ? (
+                  {wishlist[state.product.id] ? (
                     <FaHeart className="text-red-500" />
                   ) : (
                     <FaRegHeart className="text-gray-400 hover:text-red-500" />
                   )}
                 </motion.button>
-              </div>
-              
-              <div className="flex items-center">
-                <div className="flex mr-2">
-                  {renderStars(product.rating.rate)}
-                </div>
-                <span className="text-blue-600 text-sm">
-                  {product.rating.count} ratings
-                </span>
               </div>
               
               <motion.div
@@ -290,15 +254,15 @@ const ProductDetails = () => {
               >
                 <div className="flex items-baseline space-x-2">
                   <span className="text-3xl font-bold text-gray-900">
-                    ${product.price.toFixed(2)}
+                    ${state.product.price.toFixed(2)}
                   </span>
-                  {product.discountPercentage > 0 && (
+                  {state.product.discountPercentage > 0 && (
                     <>
                       <span className="text-lg text-gray-500 line-through">
-                        ${(product.price / (1 - product.discountPercentage / 100)).toFixed(2)}
+                        ${(state.product.price / (1 - state.product.discountPercentage / 100)).toFixed(2)}
                       </span>
                       <span className="text-sm bg-red-100 text-red-800 px-2 py-1 rounded">
-                        Save {Math.round(product.discountPercentage)}%
+                        Save {Math.round(state.product.discountPercentage)}%
                       </span>
                     </>
                   )}
@@ -308,7 +272,7 @@ const ProductDetails = () => {
               <div className="space-y-3">
                 <h3 className="font-medium text-gray-900">About this item:</h3>
                 <ul className="list-disc pl-5 space-y-1 text-gray-700">
-                  <li>{product.description}</li>
+                  <li>{state.product.description}</li>
                   <li>High-quality materials</li>
                   <li>Easy to use and maintain</li>
                   <li>1-year manufacturer warranty</li>
@@ -338,17 +302,16 @@ const ProductDetails = () => {
               <div className="flex items-center space-x-4">
                 <div className="flex items-center border border-gray-300 rounded">
                   <button 
-                    onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                    onClick={() => setState(prev => ({...prev, quantity: Math.max(1, prev.quantity - 1)}))}
                     className="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-                    disabled={quantity <= 1}
+                    disabled={state.quantity <= 1}
                   >
                     -
                   </button>
-                  <span className="px-3 py-1">{quantity}</span>
+                  <span className="px-3 py-1">{state.quantity}</span>
                   <button 
-                    onClick={() => setQuantity(prev => Math.min(stock, prev + 1))}
-                    className="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-                    disabled={quantity >= stock}
+                    onClick={() => setState(prev => ({...prev, quantity: prev.quantity + 1}))}
+                    className="px-3 py-1 text-gray-600 hover:bg-gray-100"
                   >
                     +
                   </button>
@@ -358,11 +321,10 @@ const ProductDetails = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleAddToCart}
-                  disabled={stock <= 0}
-                  className={`flex-1 ${stock > 0 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'} text-white font-medium py-2 px-4 rounded shadow-sm transition-colors flex items-center justify-center`}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded shadow-sm transition-colors flex items-center justify-center"
                 >
                   <FaShoppingCart className="mr-2" />
-                  <span>{stock > 0 ? 'Add to Cart' : 'Out of Stock'}</span>
+                  <span>Add to Cart</span>
                 </motion.button>
               </div>
             </div>
@@ -382,7 +344,7 @@ const ProductDetails = () => {
                     </tr>
                     <tr className="border-b border-gray-200">
                       <td className="py-2 font-medium">Category</td>
-                      <td className="py-2 capitalize">{product.category}</td>
+                      <td className="py-2 capitalize">{state.product.category}</td>
                     </tr>
                     <tr className="border-b border-gray-200">
                       <td className="py-2 font-medium">Model</td>
