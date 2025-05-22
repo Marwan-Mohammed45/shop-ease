@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaStar, FaRegStar, FaStarHalfAlt, FaShoppingCart, FaHeart, FaRegHeart, FaChevronLeft, FaChevronRight, FaTruck, FaShieldAlt, FaReply, FaExclamationTriangle } from 'react-icons/fa';
+import { FaStar, FaRegStar, FaStarHalfAlt, FaShoppingCart, FaHeart, FaRegHeart, FaChevronLeft, FaChevronRight, FaTruck, FaShieldAlt, FaReply, FaExclamationTriangle, FaBoxOpen } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import { Productsdata } from '../api/api';
 import { useDispatch, useSelector } from 'react-redux';
@@ -13,14 +13,15 @@ const ProductDetails = () => {
   const dispatch = useDispatch();
   
   const wishlist = useSelector(state => state.ecommerce?.wishlist || {});
+  const cartItems = useSelector(state => state.ecommerce?.cart || []);
   
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentImage, setCurrentImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
+  const [stock, setStock] = useState(0);
 
-  // دالة لتحميل بيانات المنتج
   const fetchProduct = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -29,7 +30,6 @@ const ProductDetails = () => {
       const foundProduct = products.find(p => p.id.toString() === id);
       
       if (foundProduct) {
-        // إنشاء مصفوفة صور المنتج بشكل صحيح
         const productImages = Array.isArray(foundProduct.images) && foundProduct.images.length > 0
           ? foundProduct.images
           : [
@@ -39,12 +39,18 @@ const ProductDetails = () => {
               foundProduct.image.replace(/\.(jpg|jpeg|png)/, '_3.$1')
             ].filter(Boolean);
 
+        const initialStock = Math.floor(Math.random() * 50) + 10;
+        const inCart = cartItems.find(item => item.id === foundProduct.id)?.quantity || 0;
+        const availableStock = Math.max(0, initialStock - inCart);
+
         setProduct({
           ...foundProduct,
           images: productImages,
           discountPercentage: foundProduct.discountPercentage || 0,
           rating: foundProduct.rating || { rate: 4.5, count: 124 }
         });
+        
+        setStock(availableStock);
       } else {
         setError('Product not found');
       }
@@ -55,7 +61,7 @@ const ProductDetails = () => {
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, cartItems]);
 
   useEffect(() => {
     fetchProduct();
@@ -75,6 +81,12 @@ const ProductDetails = () => {
 
   const handleAddToCart = useCallback(() => {
     if (!product) return;
+    
+    if (quantity > stock) {
+      toast.error(`Only ${stock} items available in stock`);
+      return;
+    }
+    
     dispatch(addToCart({
       id: product.id,
       title: product.title,
@@ -82,8 +94,12 @@ const ProductDetails = () => {
       img: product.image,
       quantity: quantity
     }));
-    toast.success(`${product.title} added to cart`);
-  }, [dispatch, product, quantity]);
+    
+    setStock(prev => prev - quantity);
+    setQuantity(1);
+    
+    toast.success(`${quantity} ${product.title} added to cart`);
+  }, [dispatch, product, quantity, stock]);
 
   const renderStars = useCallback((rating) => {
     const stars = [];
@@ -247,6 +263,7 @@ const ProductDetails = () => {
                   whileTap={{ scale: 0.9 }}
                   onClick={handleToggleWishlist}
                   className="text-2xl p-2"
+                  aria-label={wishlist[product.id] ? "Remove from wishlist" : "Add to wishlist"}
                 >
                   {wishlist[product.id] ? (
                     <FaHeart className="text-red-500" />
@@ -286,10 +303,6 @@ const ProductDetails = () => {
                     </>
                   )}
                 </div>
-                
-                <div className="mt-2 text-green-700 font-medium">
-                  In Stock (Only {Math.floor(Math.random() * 50) + 10} left!)
-                </div>
               </motion.div>
               
               <div className="space-y-3">
@@ -326,14 +339,16 @@ const ProductDetails = () => {
                 <div className="flex items-center border border-gray-300 rounded">
                   <button 
                     onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
-                    className="px-3 py-1 text-gray-600 hover:bg-gray-100"
+                    className="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                    disabled={quantity <= 1}
                   >
                     -
                   </button>
                   <span className="px-3 py-1">{quantity}</span>
                   <button 
-                    onClick={() => setQuantity(prev => prev + 1)}
-                    className="px-3 py-1 text-gray-600 hover:bg-gray-100"
+                    onClick={() => setQuantity(prev => Math.min(stock, prev + 1))}
+                    className="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+                    disabled={quantity >= stock}
                   >
                     +
                   </button>
@@ -343,10 +358,11 @@ const ProductDetails = () => {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleAddToCart}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded shadow-sm transition-colors flex items-center justify-center"
+                  disabled={stock <= 0}
+                  className={`flex-1 ${stock > 0 ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'} text-white font-medium py-2 px-4 rounded shadow-sm transition-colors flex items-center justify-center`}
                 >
                   <FaShoppingCart className="mr-2" />
-                  <span>Add to Cart</span>
+                  <span>{stock > 0 ? 'Add to Cart' : 'Out of Stock'}</span>
                 </motion.button>
               </div>
             </div>
@@ -366,7 +382,7 @@ const ProductDetails = () => {
                     </tr>
                     <tr className="border-b border-gray-200">
                       <td className="py-2 font-medium">Category</td>
-                      <td className="py-2">{product.category}</td>
+                      <td className="py-2 capitalize">{product.category}</td>
                     </tr>
                     <tr className="border-b border-gray-200">
                       <td className="py-2 font-medium">Model</td>
@@ -386,6 +402,10 @@ const ProductDetails = () => {
                   <div className="flex items-start">
                     <FaReply className="flex-shrink-0 mt-1 mr-2 text-gray-500" />
                     <p>Easy 30-day returns</p>
+                  </div>
+                  <div className="flex items-start">
+                    <FaShieldAlt className="flex-shrink-0 mt-1 mr-2 text-gray-500" />
+                    <p>Secure payment options</p>
                   </div>
                 </div>
               </div>

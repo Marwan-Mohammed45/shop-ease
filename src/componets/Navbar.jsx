@@ -25,6 +25,7 @@ import {
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { auth } from "../Firebaseconfig";
+import { Productsdata } from "../api/api";
 import { signOut } from "firebase/auth";
 
 const ProductCard = ({ product, onClick }) => (
@@ -159,6 +160,7 @@ const Navbar = () => {
   const [showResults, setShowResults] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState(null);
+  const [allProducts, setAllProducts] = useState([]);
   const dropdownRef = useRef(null);
   const searchInputRef = useRef(null);
   const navigate = useNavigate();
@@ -183,61 +185,61 @@ const Navbar = () => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
     });
+    
+    // تحميل جميع المنتجات عند تحميل المكون
+    loadAllProducts();
+    
     return () => unsubscribe();
   }, []);
 
-  const fetchSearchResults = async (query) => {
+  // دالة لتحميل جميع المنتجات من API
+  const loadAllProducts = async () => {
     try {
       setIsSearching(true);
-      setSearchError(null);
-      
-      if (!query.trim()) {
-        setSearchResults([]);
-        return;
-      }
-
-      // استبدل هذا الرابط برابط API الخاص بك
-      const response = await fetch(`https://fakestoreapi.com/products?q=${encodeURIComponent(query)}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch search results');
-      }
-      
-      const data = await response.json();
-      
-      // فلترة النتائج بناءً على الاستعلام (في حالة عدم وجود فلترة من الخادم)
-      const filteredResults = data.filter(product => 
-        product.title.toLowerCase().includes(query.toLowerCase()) ||
-        product.category.toLowerCase().includes(query.toLowerCase()) ||
-        product.description.toLowerCase().includes(query.toLowerCase())
-      );
-      
-      setSearchResults(filteredResults);
-      setShowResults(true);
-      
+      // استدعاء API الخاص بالمنتجات
+      const products = await Productsdata();
+      setAllProducts(products);
     } catch (error) {
-      console.error("Search error:", error);
-      setSearchError("Failed to fetch results. Please try again.");
-      setSearchResults([]);
+      console.error("Failed to load products:", error);
+      setSearchError("Failed to load products. Please try again later.");
     } finally {
       setIsSearching(false);
     }
   };
 
+  // دالة البحث المحسنة
+  const searchProducts = (query) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const lowerCaseQuery = query.toLowerCase();
+    
+    // فلترة المنتجات باستخدام خوارزمية أكثر تطوراً
+    const results = allProducts.filter(product => {
+      // البحث في العنوان والوصف والفئة
+      const inTitle = product.title.toLowerCase().includes(lowerCaseQuery);
+      const inDescription = product.description?.toLowerCase().includes(lowerCaseQuery) || false;
+      const inCategory = product.category.toLowerCase().includes(lowerCaseQuery);
+      
+      // يمكن إضافة المزيد من شروط البحث هنا
+      return inTitle || inDescription || inCategory;
+    });
+
+    setSearchResults(results);
+    setShowResults(results.length > 0);
+  };
+
+  // دالة البحث مع Debounce
+  const debouncedSearch = debounce(searchProducts, 300);
+
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchText.trim()) {
-      fetchSearchResults(searchText);
+      searchProducts(searchText);
     }
   };
-
-  const debouncedSearch = debounce((query) => {
-    if (query.trim().length > 0) {
-      fetchSearchResults(query);
-    } else {
-      setSearchResults([]);
-    }
-  }, 500);
 
   const handleInstantSearch = (query) => {
     setSearchText(query);
@@ -250,7 +252,6 @@ const Navbar = () => {
     setMobileMenuOpen(false);
     navigate(`/products/${product.id}`);
   };
-
 
   const handleLogout = async () => {
     try {
@@ -444,14 +445,16 @@ const Navbar = () => {
                         </div>
                       </motion.div>
                     ))}
-                    <div className="p-2 text-center bg-gray-50">
-                      <button 
-                        onClick={() => setShowResults(true)}
-                        className="text-indigo-600 font-medium text-sm hover:underline"
-                      >
-                        View all results
-                      </button>
-                    </div>
+                    {searchResults.length > 5 && (
+                      <div className="p-2 text-center bg-gray-50">
+                        <button 
+                          onClick={() => setShowResults(true)}
+                          className="text-indigo-600 font-medium text-sm hover:underline"
+                        >
+                          View all {searchResults.length} results
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               )}
@@ -580,7 +583,7 @@ const Navbar = () => {
                 {/* Mobile search results */}
                 {searchText && searchResults.length > 0 && (
                   <div className="mb-6 bg-gray-50 rounded-lg p-3">
-                    <h3 className="font-medium mb-2">Search Results</h3>
+                    <h3 className="font-medium mb-2">Search Results ({searchResults.length})</h3>
                     <div className="space-y-2">
                       {searchResults.slice(0, 3).map((product) => (
                         <motion.div
@@ -607,6 +610,17 @@ const Navbar = () => {
                           </div>
                         </motion.div>
                       ))}
+                      {searchResults.length > 3 && (
+                        <button
+                          onClick={() => {
+                            setShowResults(true);
+                            setMobileMenuOpen(false);
+                          }}
+                          className="w-full py-2 text-indigo-600 font-medium text-sm hover:underline"
+                        >
+                          View all {searchResults.length} results
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
