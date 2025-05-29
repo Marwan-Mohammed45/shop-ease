@@ -8,12 +8,13 @@ const Banner = () => {
       className="w-full h-[250px] sm:h-[350px] md:h-[400px] lg:h-[500px] bg-cover bg-center flex flex-col items-start justify-center px-6 sm:px-12 md:px-16 lg:px-24 text-white relative"
       style={{
         backgroundImage: `url('https://images.unsplash.com/photo-1555529669-e69e7aa0ba9a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1600&q=80')`,
-        backgroundPosition: 'center 30%', // تم التعديل هنا
+        backgroundPosition: 'center 30%',
       }}
     >
       <div className="absolute inset-0 bg-black/30"></div>
 
-      <div className="relative z-10 w-full max-w-7xl mx-auto">
+      {/* ✅ عدلنا هنا ↓↓↓ */}
+      <div className="relative z-10 w-full max-w-7xl mx-auto pt-2.5 sm:pt-0">
         <motion.h1
           className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 md:mb-6"
           initial={{ opacity: 0, y: -30 }}

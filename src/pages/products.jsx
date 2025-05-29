@@ -14,7 +14,6 @@ import {
   FaShippingFast,
   FaChevronRight,
 } from 'react-icons/fa';
-import { toast } from 'react-toastify';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -34,7 +33,7 @@ const Products = () => {
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('Failed to load products. Please try again later.');
-        toast.error('Failed to load products');
+        alert('Failed to load products!');
       } finally {
         setIsLoading(false);
       }
@@ -52,7 +51,7 @@ const Products = () => {
       title: product.title,
       category: product.category,
     }));
-    toast.success(wishlist[product.id] ? 'Removed from wishlist' : 'Added to wishlist');
+    alert(wishlist[product.id] ? 'Removed from wishlist' : 'Added to wishlist');
   };
 
   const handleAddToCart = (product, e) => {
@@ -65,7 +64,7 @@ const Products = () => {
       category: product.category,
       quantity: 1,
     }));
-    toast.success(`${product.title} added to cart`);
+    alert(`${product.title} added to cart`);
   };
 
   const navigateToProductDetails = (productId, e) => {
@@ -169,7 +168,6 @@ const Products = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
-        {/* Header Section */}
         <div className="mb-6 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Featured Products</h1>
           <div className="flex items-center text-sm text-blue-600 hover:text-blue-800 cursor-pointer">
@@ -178,7 +176,6 @@ const Products = () => {
           </div>
         </div>
 
-        {/* Product Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {products.slice(0, visibleProducts).map((product) => (
             <motion.div
@@ -189,7 +186,6 @@ const Products = () => {
               whileHover={{ y: -5 }}
               className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md border border-gray-200 cursor-pointer relative flex flex-col h-full"
             >
-              {/* Product Image */}
               <div
                 className="relative pt-[70%] bg-white group"
                 onClick={(e) => navigateToProductDetails(product.id, e)}
@@ -216,7 +212,6 @@ const Products = () => {
                 )}
               </div>
 
-              {/* Product Info */}
               <div className="p-4 flex-grow flex flex-col">
                 <h3
                   className="text-sm font-medium text-gray-900 line-clamp-2 mb-2 hover:text-blue-600 transition-colors"
@@ -267,7 +262,6 @@ const Products = () => {
                 </div>
               </div>
 
-              {/* Additional Info */}
               <div className="px-4 py-2 border-t border-gray-100 bg-gray-50">
                 <div className="flex items-center justify-between text-xs text-gray-600">
                   <div className="flex items-center">
@@ -281,7 +275,6 @@ const Products = () => {
           ))}
         </div>
 
-        {/* Load More Button */}
         {visibleProducts < products.length && (
           <div className="mt-8 flex justify-center">
             <motion.button

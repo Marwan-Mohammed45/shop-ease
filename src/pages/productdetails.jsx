@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaShoppingCart, FaHeart, FaRegHeart, FaChevronLeft, FaChevronRight, FaTruck, FaShieldAlt, FaReply, FaExclamationTriangle } from 'react-icons/fa';
-import { toast } from 'react-toastify';
 import { Productsdata } from '../api/api';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, toggleWishlist } from '../Reducer/appslice';
@@ -48,7 +47,7 @@ const ProductDetails = () => {
       }
     } catch (error) {
       setState(prev => ({...prev, error: 'Failed to load product details', loading: false}));
-      toast.error('Failed to load product details');
+      alert('Failed to load product details');
     }
   }, [id]);
 
@@ -60,13 +59,13 @@ const ProductDetails = () => {
     if (!state.product) return;
     dispatch(toggleWishlist({
       id: state.product.id,
-    img: state.product.thumbnail || state.product.image,
-    price: state.product.price,
-    title: state.product.title,
-    category: state.product.category,
-    quantity: state.quantity
+      img: state.product.thumbnail || state.product.image,
+      price: state.product.price,
+      title: state.product.title,
+      category: state.product.category,
+      quantity: state.quantity
     }));
-    toast.success(wishlist[state.product.id] ? 'Removed from wishlist' : 'Added to wishlist');
+    alert(wishlist[state.product.id] ? 'Removed from wishlist' : 'Added to wishlist');
   }, [dispatch, state.product, wishlist]);
 
   const handleAddToCart = useCallback(() => {
@@ -74,15 +73,15 @@ const ProductDetails = () => {
     
     dispatch(addToCart({
       id: state.product.id,
-    img: state.product.thumbnail || state.product.image,
-    price: state.product.price,
-    title: state.product.title,
-    category: state.product.category,
-    quantity: state.quantity
+      img: state.product.thumbnail || state.product.image,
+      price: state.product.price,
+      title: state.product.title,
+      category: state.product.category,
+      quantity: state.quantity
     }));
     
     setState(prev => ({...prev, quantity: 1}));
-    toast.success(`${state.quantity} ${state.product.title} added to cart`);
+    alert(`${state.quantity} ${state.product.title} added to cart`);
   }, [dispatch, state.product, state.quantity]);
 
   const nextImage = useCallback(() => {

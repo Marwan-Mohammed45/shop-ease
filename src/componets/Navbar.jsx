@@ -35,13 +35,14 @@ const ProductCard = ({ product, onClick }) => (
     transition={{ duration: 0.3 }}
     onClick={onClick}
   >
-    <div className="h-48 bg-gray-100 overflow-hidden">
+    <div className="h-48 bg-gray-100 overflow-hidden flex items-center justify-center">
       <img 
-        src={product.image || "https://via.placeholder.com/300"} 
+        src={product.thumbnail || product.image || "https://via.placeholder.com/300"} 
         alt={product.title}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-contain p-4"
         onError={(e) => {
           e.target.src = "https://via.placeholder.com/300";
+          e.target.onerror = null;
         }}
       />
     </div>
@@ -186,17 +187,14 @@ const Navbar = () => {
       setUser(user);
     });
     
-    // تحميل جميع المنتجات عند تحميل المكون
     loadAllProducts();
     
     return () => unsubscribe();
   }, []);
 
-  // دالة لتحميل جميع المنتجات من API
   const loadAllProducts = async () => {
     try {
       setIsSearching(true);
-      // استدعاء API الخاص بالمنتجات
       const products = await Productsdata();
       setAllProducts(products);
     } catch (error) {
@@ -207,7 +205,6 @@ const Navbar = () => {
     }
   };
 
-  // دالة البحث المحسنة
   const searchProducts = (query) => {
     if (!query.trim()) {
       setSearchResults([]);
@@ -216,14 +213,11 @@ const Navbar = () => {
 
     const lowerCaseQuery = query.toLowerCase();
     
-    // فلترة المنتجات باستخدام خوارزمية أكثر تطوراً
     const results = allProducts.filter(product => {
-      // البحث في العنوان والوصف والفئة
       const inTitle = product.title.toLowerCase().includes(lowerCaseQuery);
       const inDescription = product.description?.toLowerCase().includes(lowerCaseQuery) || false;
       const inCategory = product.category.toLowerCase().includes(lowerCaseQuery);
       
-      // يمكن إضافة المزيد من شروط البحث هنا
       return inTitle || inDescription || inCategory;
     });
 
@@ -231,7 +225,6 @@ const Navbar = () => {
     setShowResults(results.length > 0);
   };
 
-  // دالة البحث مع Debounce
   const debouncedSearch = debounce(searchProducts, 300);
 
   const handleSearch = (e) => {
@@ -428,13 +421,14 @@ const Navbar = () => {
                         onClick={() => handleProductSelect(product)}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gray-100 rounded-md overflow-hidden">
+                          <div className="w-10 h-10 bg-gray-100 rounded-md overflow-hidden flex items-center justify-center">
                             <img 
-                              src={product.image || "https://via.placeholder.com/100"} 
+                              src={product.thumbnail || product.image || "https://via.placeholder.com/100"} 
                               alt={product.title}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-contain p-1"
                               onError={(e) => {
                                 e.target.src = "https://via.placeholder.com/100";
+                                e.target.onerror = null;
                               }}
                             />
                           </div>
@@ -596,11 +590,15 @@ const Navbar = () => {
                           }}
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gray-100 rounded-md overflow-hidden">
+                            <div className="w-10 h-10 bg-gray-100 rounded-md overflow-hidden flex items-center justify-center">
                               <img 
-                                src={product.image || "https://via.placeholder.com/100"} 
+                                src={product.thumbnail || product.image || "https://via.placeholder.com/100"} 
                                 alt={product.title}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-contain p-1"
+                                onError={(e) => {
+                                  e.target.src = "https://via.placeholder.com/100";
+                                  e.target.onerror = null;
+                                }}
                               />
                             </div>
                             <div className="flex-1 min-w-0">

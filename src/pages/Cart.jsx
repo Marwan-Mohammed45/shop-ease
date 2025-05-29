@@ -87,7 +87,7 @@ const Cart = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4">
         {/* شريط التقدم */}
-        <div className="mb-6">
+        <div className="mb-6 pt-5">
           <div className="flex justify-between items-center mb-2">
             <div className={`flex flex-col items-center ${checkoutStep >= 1 ? 'text-indigo-600' : 'text-gray-400'}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-1 ${checkoutStep >= 1 ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>
